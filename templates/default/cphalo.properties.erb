@@ -1,0 +1,20 @@
+daemon-key=<%= node[:cloudpassage]['daemon_key'] %>
+<% if node[:cloudpassage][:grid] != nil %>
+grid=<%= node[:cloudpassage][:grid] %>
+<% end %>
+<% if node[:cloudpassage][:proxy_url] != nil %>
+proxy=<%= node[:cloudpassage][:proxy_url] %>
+<% end %>
+<% if node[:cloudpassage][:proxy_user] != nil %>
+proxy-user=<%= node[:cloudpassage][:proxy_user] %>
+<% end %>
+<% if node[:cloudpassage][:proxy_pass] != nil %>
+proxy-password=<%= node[:cloudpassage][:proxy_pass] %>
+<% end %>
+<% if node[:cloudpassage][:tag] != nil %>
+tag=<%= node[:cloudpassage][:tag] %>
+<% end %>
+<% if node[:cloudpassage][:dns] != nil %>
+dns=<%= node[:cloudpassage][:dns] %>
+<% end %>
+
