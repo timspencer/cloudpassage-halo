@@ -73,9 +73,9 @@ end
 ###
 case node[:platform_family]
 when 'windows'
-  propertiespath = '/opt/cloudpassage/data/cphalo.properties'
-else
   propertiespath = 'c:\Program Files\CloudPassage\data\cphalo.properties'
+else
+  propertiespath = '/opt/cloudpassage/data/cphalo.properties'
 end
 template 'cphalo.properties' do
   path propertiespath
