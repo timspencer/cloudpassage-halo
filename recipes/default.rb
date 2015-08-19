@@ -67,6 +67,7 @@ else
       options "/S /daemon-key=#{node[:cloudpassage]['daemon_key']}"
       action :install
       notifies :create, 'template[cphalo.properties]', :immediately
+    end
   end
 end
 
@@ -75,7 +76,7 @@ end
 ruby_block "edit cphalod init" do
   block do
     fe = Chef::Util::FileEdit.new("/etc/init.d/cphalod")
-    fe.search_file_replace_line(/^  rm -f .CP/data/cphalo.properties/, "  #rm -f $CP/data/cphalo.properties")
+    fe.search_file_replace_line(/^  rm -f .CP.data.cphalo.properties/, "  #rm -f $CP/data/cphalo.properties")
     fe.write_file
   end
   # only_if XXX something to detect < 3.5.0 maybe someday
