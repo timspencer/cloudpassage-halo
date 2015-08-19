@@ -16,9 +16,10 @@ package 'cphalo' do
   end
 end
 
-windows_package 'CloudPassage Halo' do
-  action :remove
-  only_if node[:platform_family] == 'windows'
+if node[:platform_family] == 'windows'
+  windows_package 'CloudPassage Halo' do
+    action :remove
+  end
 end
 
 ###
@@ -38,7 +39,7 @@ when 'windows'
 else
   halopath = '/opt/cloudpassage'
 end
-directory halopath
+directory halopath do
   action :delete
   recursive true
 end
