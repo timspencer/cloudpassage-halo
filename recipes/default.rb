@@ -41,7 +41,7 @@ else
       notifies :run, 'execute[install_halo_deb]', :immediately
     end
     execute 'install_halo_deb' do
-      command "dpkg -i #{dpath}
+      command "dpkg -i #{dpath}"
       action :nothing
       notifies :create, 'template[cphalo.properties]', :immediately
     end
@@ -96,7 +96,7 @@ template 'cphalo.properties' do
   path propertiespath
   source 'cphalo.properties.erb'
   mode 0600
-  owner root
+  owner 'root'
   action :nothing
 end
 
