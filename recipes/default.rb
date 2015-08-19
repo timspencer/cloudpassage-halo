@@ -104,8 +104,8 @@ end
 # data files if you have more than one going...  We hope.
 execute 'kill everything if there are too many' do
   not_if { node[:platform_family] == 'windows' }
-  only_if "ps gaxuwww | grep XXX -gt 2"
-  command "XXX kill all cphalod"
+  only_if "PROCS=`ps gaxuwww | grep -v grep | grep /opt/cloudpassage/bin/cphalo | wc -l` ; if [ $PROCS -gt 3 ] ; then true ; else false ; fi"
+  command "ps gaxuwww | egrep -v 'grep|awk' | awk '/opt.cloudpassage.bin.cphalo/ {print $2}' | xargs kill -9"
 end
 
 ###
