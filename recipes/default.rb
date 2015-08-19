@@ -3,7 +3,7 @@
 # Initial Start of Cookbook
 # Copyright 2014, CloudPassage
 
-# First we build the proxy string
+# FOR TESTING PURPOSES ONLY.  NOT FOR USE WITH HALO >= 3.5.0 OR YOU WON'T HAVE FUN
 
 ###
 # Defining the tag
@@ -45,6 +45,7 @@ else
       action :nothing
       notifies :create, 'template[cphalo.properties]', :immediately
     end
+
   when 'rhel'
     package 'lsof'
     rpath = "#{Chef::Config[:file_cache_path]}/cphalo-3.2.9-1.x86_64.rpm"
@@ -58,6 +59,7 @@ else
       action :nothing
       notifies :create, 'template[cphalo.properties]', :immediately
     end
+
   when 'windows'
     windows_package 'CloudPassage Halo' do
       source node[:cloudpassage][:win_location]
@@ -66,6 +68,18 @@ else
       action :install
       notifies :create, 'template[cphalo.properties]', :immediately
   end
+end
+
+# This is so ugly, but we need to do this because older daemon init files just rm
+# the properties file.  :-(  This should not be needed once we move to 3.5.0+.
+ruby_block "edit cphalod init" do
+  block do
+    fe = Chef::Util::FileEdit.new("/etc/init.d/cphalod")
+    fe.search_file_replace_line(/^  rm -f .CP/data/cphalo.properties/, "  #rm -f $CP/data/cphalo.properties")
+    fe.write_file
+  end
+  # only_if XXX something to detect < 3.5.0 maybe someday
+  not_if "/bin/egrep '^  #rm -f .CP/data/cphalo' /etc/init.d/cphalod >/dev/null"
 end
 
 ###
@@ -85,8 +99,14 @@ template 'cphalo.properties' do
   action :nothing
 end
 
-XXX kill everything if there are more than one?
-
+# kill everything if there are more than one daemon running.
+# We believe this will fix a strange problem with corruption of it's
+# data files if you have more than one going...  We hope.
+execute 'kill everything if there are too many' do
+  not_if { node[:platform_family] == 'windows' }
+  only_if "ps gaxuwww | grep XXX -gt 2"
+  command "XXX kill all cphalod"
+end
 
 ###
 # Make sure it's started up and configured to start upon reboot!
@@ -100,7 +120,4 @@ end
 service p_serv_name do
   action [ "enable", "start"]
 end
-
-XXX delete properties file here?
-
 
