@@ -8,20 +8,22 @@
 ###
 # Defining the tag
 ###
-case node.platform
-when "oracle"
-  if node.platform_version =~ /6/
-    node.default.cloudpassage.tag = "oel6"
-  else
-    node.default.cloudpassage.tag = "oel5"
-  end
-when "ubuntu"
-  node.default.cloudpassage.tag = "ubuntu14"
-when "windows"
-  if node.platform_version.to_f >= 6.2
-    node.default.cloudpassage.tag = "win2012"
-  else
-    node.default.cloudpassage.tag = "win2008r2"
+if node.default.cloudpassage.tag == nil
+  case node.platform
+  when "oracle"
+    if node.platform_version =~ /6/
+      node.default.cloudpassage.tag = "oel6"
+    else
+      node.default.cloudpassage.tag = "oel5"
+    end
+  when "ubuntu"
+    node.default.cloudpassage.tag = "ubuntu14"
+  when "windows"
+    if node.platform_version.to_f >= 6.2
+      node.default.cloudpassage.tag = "win2012"
+    else
+      node.default.cloudpassage.tag = "win2008r2"
+    end
   end
 end
 
@@ -43,7 +45,7 @@ else
     execute 'install_halo_deb' do
       command "dpkg -i #{dpath}"
       action :nothing
-      notifies :create, 'template[cphalo.properties]', :immediately
+      notifies :create, 'ruby_block[edit_cphalod_init]', :immediately
     end
 
   when 'rhel'
@@ -57,7 +59,7 @@ else
     execute 'install_halo_rpm' do
       command "rpm -ivh #{rpath}"
       action :nothing
-      notifies :create, 'template[cphalo.properties]', :immediately
+      notifies :create, 'ruby_block[edit_cphalod_init]', :immediately
     end
 
   when 'windows'
@@ -66,14 +68,14 @@ else
       installer_type :custom
       options "/S /daemon-key=#{node[:cloudpassage]['daemon_key']}"
       action :install
-      notifies :create, 'template[cphalo.properties]', :immediately
+      notifies :create, 'ruby_block[edit_cphalod_init]', :immediately
     end
   end
 end
 
 # This is so ugly, but we need to do this because older daemon init files just rm
 # the properties file.  :-(  This should not be needed once we move to 3.5.0+.
-ruby_block "edit cphalod init" do
+ruby_block "edit_cphalod_init" do
   block do
     fe = Chef::Util::FileEdit.new("/etc/init.d/cphalod")
     fe.search_file_replace_line(/^ *rm -f .CP.data.cphalo.properties/, "  #rm -f $CP/data/cphalo.properties")
@@ -81,6 +83,8 @@ ruby_block "edit cphalod init" do
   end
   # only_if XXX something to detect < 3.5.0 maybe someday
   not_if "/bin/egrep '^  #rm -f .CP/data/cphalo' /etc/init.d/cphalod >/dev/null"
+  action :nothing
+  notifies :create, 'template[cphalo.properties]', :immediately
 end
 
 ###
@@ -98,6 +102,16 @@ template 'cphalo.properties' do
   mode 0600
   owner 'root'
   action :nothing
+  notifies :run, 'execute[initialize_halo]', :immediately
+end
+
+###
+# If this is an initial install, start it up with the daemon key and then shut it down
+# Man, this is so much easier if you do this in the bootstrap.
+###
+execute 'initialize_halo' do
+  command "/etc/init.d/cphalod start --daemon-key=#{node[:cloudpassage]['daemon_key']} ; sleep 5 ; /etc/init.d/cphalod stop"
+  action :nothing
 end
 
 # kill everything if there are more than one daemon running.
@@ -107,6 +121,7 @@ execute 'kill everything if there are too many' do
   not_if { node[:platform_family] == 'windows' }
   only_if "PROCS=`ps gaxuwww | grep -v grep | grep /opt/cloudpassage/bin/cphalo | wc -l` ; if [ $PROCS -gt 2 ] ; then true ; else false ; fi"
   command "ps gaxuwww | egrep -v 'grep|awk' | awk '/opt.cloudpassage.bin.cphalo/ {print $2}' | xargs kill -9"
+  notifies :restart, 'service[cphalod]'
 end
 
 ###
@@ -120,5 +135,6 @@ else
 end
 service p_serv_name do
   action [ "enable", "start"]
+  supports :status => true, :start => true, :stop => true, :restart => true
 end
 
