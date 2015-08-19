@@ -43,3 +43,11 @@ directory halopath
   recursive true
 end
 
+file "#{Chef::Config[:file_cache_path]}/cphalo_3.2.9_amd64.deb" do
+  action :delete
+end
+
+file "#{Chef::Config[:file_cache_path]}/cphalo-3.2.9-1.x86_64.rpm" do
+  action :delete
+end
+
